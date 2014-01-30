@@ -1,0 +1,124 @@
+```{r include = FALSE}
+library(xtable)
+printTable <- function(x, truncateNums = TRUE) {
+  x <- xtable(x)
+  if(truncateNums) {
+    digits(x) <- c(0)
+  }
+  print(x, type = 'html', include.rowname = FALSE)
+}
+```
+
+_Lattice_ vs _Ggplot2_ and _aggregate_ vs _plyr_
+==========================================
+
+Goal: to get a little more familiar with the awesome _ggplot2_ and _plyr_ functions by mimicking some results that were obtained with the older _lattice_ and _aggregate_
+
+[Link to original tutorial](http://www.ugrad.stat.ubc.ca/~stat540/seminars/seminar04_compileNotebook-dataAggregation-twoGroupComparison.html)
+
+#### Data preparation
+Load the required libraries and data
+```{r results='hide', message=FALSE, warning=FALSE}
+library(lattice)
+library(plyr)
+library(ggplot2)
+prDat <- read.table("GSE4051_data.tsv")
+prDes <- readRDS("GSE4051_design.rds")
+```
+
+#### Single gene exploration
+
+Extract data for one gene
+```{r}
+set.seed(987)
+theGene <- sample(1:nrow(prDat), 1)
+pDat <- data.frame(prDes, gExp = unlist(prDat[theGene, ]))
+```
+
+Explore!  
+What are sample means in wildtype/knockout? First using _aggregate_, then using _plyr_
+```
+aggregate(gExp ~ gType, pDat, FUN = mean)
+```
+```{r results='asis', echo=F}
+printTable(aggregate(gExp ~ gType, pDat, FUN = mean), truncateNums = FALSE)
+```
+```
+ddply(pDat, ~ gType, summarize, gExp = mean(gExp))
+```
+```{r results='asis', echo=F}
+printTable(ddply(pDat, ~ gType, summarize, gExp = mean(gExp)), truncateNums = FALSE)
+```
+
+Make sure the two actually returned identical results
+```{r tidy=F}
+identical(aggregate(gExp ~ gType, pDat, FUN = mean),
+          ddply(pDat, ~ gType, summarize, gExp = mean(gExp)))
+```
+
+Plot!  
+Strip plot of just the one gene, knockout vs wildtype. First using _lattice_, then using _ggplot2_
+```{r fig.width=5, fig.height=3}
+stripplot(gType ~ gExp, pDat)
+ggplot(pDat, aes(x = gExp, y = gType)) + geom_point()
+```
+
+#### Multiple genes
+
+Load in the dataset
+```{r}
+kDat <- readRDS("GSE4051_MINI.rds")
+```
+
+Explore!  
+Average expression of eggBomb over developmental stages, first using _aggregate_, then using _plyr_
+```
+aggregate(eggBomb ~ devStage, kDat, FUN = mean)
+```
+```{r results='asis', echo=F}
+printTable(aggregate(eggBomb ~ devStage, kDat, FUN = mean), truncateNums = FALSE)
+```
+```
+ddply(kDat, ~ devStage, summarize, exp = mean(eggBomb))
+```
+```{r results='asis', echo=F}
+printTable(ddply(kDat, ~ devStage, summarize, exp = mean(eggBomb)), truncateNums = FALSE)
+```
+
+Same thing, but now aggregate based on dev stage AND genotype
+```
+aggregate(eggBomb ~ gType * devStage, kDat, FUN = mean)
+```
+```{r results='asis', echo=F}
+printTable(aggregate(eggBomb ~ gType * devStage, kDat, FUN = mean), truncateNums = FALSE)
+```
+```
+ddply(kDat, .(gType, devStage), summarize, exp = mean(eggBomb))
+```
+```{r results='asis', echo=F}
+printTable(ddply(kDat, .(gType, devStage), summarize, exp = mean(eggBomb)), truncateNums = FALSE)
+```
+
+#### Multigene plotting
+Grab 6 genes: 3 interesting, 3 boring
+```{r tidy=F}
+keepGenes <- c("1431708_a_at", "1424336_at", "1454696_at",
+               "1416119_at", "1432141_x_at", "1429226_at")
+miniDat <- subset(prDat, rownames(prDat) %in% keepGenes)
+miniDat <- data.frame(gExp = as.vector(t(as.matrix(miniDat))),
+                      gene = factor(rep(rownames(miniDat), each = ncol(miniDat)),
+                                    levels = keepGenes))
+miniDat <- suppressWarnings(data.frame(prDes, miniDat))
+```
+
+Plot!  
+Strip plot of the expression vs genotype, one plot per gene. First using _lattice_, then using _ggplot2_
+```{r fig.width=8, fig.height=6, tidy=F}
+stripplot(gType ~ gExp | gene, miniDat,
+          scales = list(x = list(relation = "free")),
+          group = gType, auto.key = TRUE)
+ggplot(miniDat, aes(x = gExp, y = gType, color = gType)) +
+  facet_wrap(~ gene, scales="free_x") +
+  geom_point(alpha = 0.7) +
+  theme(panel.grid.major.x = element_blank())
+```

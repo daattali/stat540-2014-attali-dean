@@ -2,7 +2,7 @@
 # Jan 29, 2014
 # UBC STAT540
 
-# lab 5 - fitting and interpreting linear models in a low volume
+# lab 5 - fitting and interpreting linear models - LOW VOLUME
 
 library(plyr)
 library(ggplot2)

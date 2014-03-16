@@ -2,7 +2,7 @@
 # Mar 5, 2014
 # UBC STAT540
 
-# lab 8 - DNAA methylation analysis
+# lab 8 - DNA methylation analysis
 
 # we are going to perform differential methylation analysis for Acute lymphoblastic leukemia (ALL)
 # cases and healthy B cells as control group. All samples are taken from GEO (Gene Expression Omnibus)
